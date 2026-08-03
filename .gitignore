@@ -1,4 +1,6 @@
 uv.lock
 seanerbus_cli.egg.info
 .venv
+src/seanerbus_cli/__pycache__
+src/seanerbus_cli/modules/__pycache__
 
