@@ -1,4 +1,4 @@
-#/usr/bin/env python3
+# /usr/bin/env python3
 
 # SPDX-FileCopyrightText: 2026 SEANERGYS Partners <https://seanergys.eu>
 #
@@ -13,7 +13,7 @@ import asyncio
 import capnp
 import uuid
 
-from . modules.db import make_history_timeline, make_history_aggregate
+from .modules.db import make_history_timeline, make_history_aggregate
 
 
 def print_msg(msg):
@@ -102,23 +102,14 @@ async def make_reg_resolve(args):
             exit(1)
         name[kv[0]] = kv[1]
 
-    res = await seanerbus.naming.register_resolve(name, addr)
-
-    if res.success:
-        print(f"Successfully registered address {addr} for name {name}")
-    else:
-        print(f"Registering address {addr} for name {name} failed: {res.errMsg}")
+    await seanerbus.naming.register_resolve(name, addr)
 
 
 async def make_unreg_resolve(args):
     addr = uuid.UUID(args.addr)
 
-    res = await seanerbus.naming.unregister_resolve(addr)
+    await seanerbus.naming.unregister_resolve(addr)
 
-    if res.success:
-        print(f"Successfully unregistered address {addr}")
-    else:
-        print(f"Unregistering address {addr} failed: {res.errMsg}")
 
 def main():
     parser = argparse.ArgumentParser(
@@ -127,18 +118,24 @@ def main():
     )
     subparsers = parser.add_subparsers(help="foobar", dest="cmd")
 
-    subscribe_parser = subparsers.add_parser("subscribe", help="Subscribe to some address")
+    subscribe_parser = subparsers.add_parser(
+        "subscribe", help="Subscribe to some address"
+    )
     subscribe_parser.add_argument("-a", "--addr", help="Address to subscribe to")
 
     publish_parser = subparsers.add_parser("publish", help="Publish a message")
-    publish_parser.add_argument("-t", "--type", help="SeanerBUS payload type to publish")
+    publish_parser.add_argument(
+        "-t", "--type", help="SeanerBUS payload type to publish"
+    )
     publish_parser.add_argument("-a", "--addr", help="UUID address to publish to")
     publish_parser.add_argument(
         "keyvalue", nargs="*", help="key=value pairs to put into the payload"
     )
 
     resolve_parser = subparsers.add_parser("resolve", help="Resolve a name")
-    resolve_parser.add_argument("keyvalue", nargs="*", help="key=value pairs to resolve")
+    resolve_parser.add_argument(
+        "keyvalue", nargs="*", help="key=value pairs to resolve"
+    )
 
     rev_resolve_parser = subparsers.add_parser(
         "reverse-resolve", help="Reverse resolve address to name"
@@ -169,9 +166,10 @@ def main():
     hist_aggr_req_parser.add_argument(
         "-s", "--start", help="Start time for history request"
     )
-    hist_aggr_req_parser.add_argument("-e", "--end", help="End time for history request")
+    hist_aggr_req_parser.add_argument(
+        "-e", "--end", help="End time for history request"
+    )
     hist_aggr_req_parser.add_argument("-i", "--interval-max", help="Interval Max")
-
 
     hist_timeline_req_parser = subparsers.add_parser(
         "history-timeline", help="Request a timeline of  time-series data"
