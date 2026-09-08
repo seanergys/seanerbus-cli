@@ -7,6 +7,7 @@
 import argparse
 import seanerbus.msg
 import seanerbus.client
+from seanerbus.client import Connection
 import seanerbus.naming
 import seanerbus.time_series
 import asyncio
@@ -52,19 +53,20 @@ async def make_publish(args):
             pass
         setattr(payload_content, kv[0], kv[1])
 
-    c = await seanerbus.client.Connection.connect("localhost", 5398)
-    await c.publish(addr, (payload_type, payload_content.to_bytes()))
+    conn = Connection("demobus://localhost:5398", "demobus://localhost:5398")
+    handle = await conn.publish(addr, (payload_type, payload_content.to_bytes()))
+    await handle()
 
 
 async def make_subscribe(args):
     addr = uuid.UUID(args.addr)
-    c = await seanerbus.client.Connection.connect("localhost", 5398)
-    await c.subscribe(addr)
+    conn = Connection("demobus://localhost:5398", "demobus://localhost:5398")
+    handle = await conn.subscribe(addr)
 
     while True:
-        msg = await c.read_msg()
-        print(msg.payloadType)
-        print_msg(parse_msg(msg.payloadType, msg.payload))
+        msg = await handle()
+        print(msg.payload_type_as_int())
+        print_msg(parse_msg(msg.payload_type_as_int(), msg.payload()))
 
 
 async def make_resolve(args):
@@ -77,7 +79,8 @@ async def make_resolve(args):
             )
             exit(1)
         resolve[kv[0]] = kv[1]
-    addrs = await seanerbus.naming.resolve(resolve)
+    conn = Connection("demobus://localhost:5398", "demobus://localhost:5398")
+    addrs = await seanerbus.naming.resolve(conn, resolve)
     print(f"Resolved {resolve} to:")
     for addr in addrs:
         print(f"\t{addr}")
@@ -86,7 +89,8 @@ async def make_resolve(args):
 async def make_rev_resolve(args):
     addr = uuid.UUID(args.addr)
 
-    kvs = await seanerbus.naming.reverse_resolve(addr)
+    conn = Connection("demobus://localhost:5398", "demobus://localhost:5398")
+    kvs = await seanerbus.naming.reverse_resolve(conn, addr)
     print(f"'{addr} => {kvs}")
 
 
@@ -102,13 +106,15 @@ async def make_reg_resolve(args):
             exit(1)
         name[kv[0]] = kv[1]
 
-    await seanerbus.naming.register_resolve(name, addr)
+    conn = Connection("demobus://localhost:5398", "demobus://localhost:5398")
+    await seanerbus.naming.register_resolve(conn, name, addr)
 
 
 async def make_unreg_resolve(args):
     addr = uuid.UUID(args.addr)
 
-    await seanerbus.naming.unregister_resolve(addr)
+    conn = Connection("demobus://localhost:5398", "demobus://localhost:5398")
+    await seanerbus.naming.unregister_resolve(conn, addr)
 
 
 def main():
