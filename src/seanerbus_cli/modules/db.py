@@ -5,15 +5,10 @@
 from seanerbus.client import Connection
 from seanerbus.time_series import get_timeline, get_aggregate
 
-import uuid
 
-
-async def make_history_aggregate(args):
-    addr = args.addr
-    start_time = int(args.start)
-    end_time = int(args.end)
-    interval_max = int(args.interval_max)
-
+async def make_history_aggregate(
+    addr: str, start_time: int, end_time: int, interval_max: int
+):
     conn = Connection("demobus://localhost:5398", "demobus://localhost:5398")
 
     aggr = await get_aggregate(conn, addr, start_time, end_time, interval_max)
@@ -21,12 +16,9 @@ async def make_history_aggregate(args):
     print(aggr)
 
 
-async def make_history_timeline(args):
-    addr = args.addr
-    start_time = int(args.start)
-    end_time = int(args.end)
-    interval_max = int(args.interval_max)
-
+async def make_history_timeline(
+    addr: str, start_time: int, end_time: int, interval_max: int
+):
     conn = Connection("demobus://localhost:5398", "demobus://localhost:5398")
     timeline = await get_timeline(conn, addr, start_time, end_time, interval_max)
 
