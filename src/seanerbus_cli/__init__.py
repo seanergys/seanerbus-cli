@@ -19,6 +19,21 @@ import seanerbus_cpp_py
 from .modules.db import make_history_timeline, make_history_aggregate
 
 
+def kv_list_to_dict(kv_list: list[str]) -> dict[str, str]:
+    res = {}
+    for kv in kv_list:
+        kv = kv.split("=")
+        if len(kv) != 2:
+            print(
+                f"{kv}: key=value arguments need to consist of two terms separated by a '=' sign!"
+            )
+            exit(1)
+        key: str = kv[0]
+        value: str | float = kv[1]
+        res[key] = value
+    return res
+
+
 # Parse a Cap'n'Proto message through introspection hacks
 def parse_msg(payload_type: int, payload: bytes) -> tuple[str, object]:
     parsed_payload_type: str | None = None
@@ -36,21 +51,67 @@ def parse_msg(payload_type: int, payload: bytes) -> tuple[str, object]:
         return (payload_class, msg)
 
 
+async def make_get(keyvalue: list[str]):
+    name = kv_list_to_dict(keyvalue)
+
+    conn = Connection("demobus://localhost:5398", "demobus://localhost:5398")
+    addr = await seanerbus.naming.resolve(conn, name)
+
+    if len(addr) != 1:
+        raise RuntimeError(f"Could not resolve {name} to a single endpoint!")
+
+    handle = await conn.request(addr[0], seanerbus.msg.GetReqV1().to_capnp())
+
+    msg = await handle()
+
+    if msg.payload_type_as_int() == seanerbus.msg.msg_capnp.MessageTypes.errorResV1:
+        err = seanerbus.msg.ErrorResV1.from_capnp(msg)
+        raise RuntimeError(f"Getting a value failed: {err.what}")
+
+    if msg.payload_type_as_int() == seanerbus.msg.msg_capnp.MessageTypes.getResV1:
+        res = seanerbus.msg.GetResV1.from_capnp(msg)
+        print(f"Value of {name} is: {res.value}")
+        return
+
+    raise RuntimeError(
+        f"Expected ErrorResV1/GetResV1, got {msg.payload_type_as_int()} instead"
+    )
+
+
+async def make_set(keyvalue: list[str], value: int):
+    name = kv_list_to_dict(keyvalue)
+
+    conn = Connection("demobus://localhost:5398", "demobus://localhost:5398")
+    addr = await seanerbus.naming.resolve(conn, name)
+
+    if len(addr) != 1:
+        raise RuntimeError(f"Could not resolve {name} to a single endpoint!")
+
+    handle = await conn.request(addr[0], seanerbus.msg.SetReqV1(value).to_capnp())
+
+    msg = await handle()
+
+    if msg.payload_type_as_int() == seanerbus.msg.msg_capnp.MessageTypes.errorResV1:
+        err = seanerbus.msg.ErrorResV1.from_capnp(msg)
+
+        if err.error_code != 0:
+            raise RuntimeError(f"Setting a value failed: {err.what}")
+        else:
+            print("Succesfully set value!")
+            return
+
+    raise RuntimeError(f"Expected ErrorResV1 got {msg.payload_type_as_int()} instead")
+
+
 async def make_publish(addr: str, capnp_type: str, fields: list[str]):
     payload_content = getattr(seanerbus.msg.msg_capnp, capnp_type).new_message()
     payload_type = getattr(
         seanerbus.msg.msg_capnp.MessageTypes, capnp_type[:1].lower() + capnp_type[1:]
     )
 
-    for kv in fields:
-        kv = kv.split("=")
-        if len(kv) != 2:
-            print(
-                f"{kv}: key=value arguments need to consist of two terms separated by a '=' sign!"
-            )
-            exit(1)
-        key: str = kv[0]
-        value: str | float = kv[1]
+    attrs = kv_list_to_dict(fields)
+
+    for key, value in attrs:
         try:
             value = float(value)
         except ValueError:
@@ -73,15 +134,8 @@ async def make_subscribe(addr: str):
 
 
 async def make_resolve(keyvalue: list[str]):
-    resolve = {}
-    for kv in keyvalue:
-        kv = kv.split("=")
-        if len(kv) != 2:
-            print(
-                f"{kv}: key=value arguments need to consist of two terms separated by a '=' sign!"
-            )
-            exit(1)
-        resolve[kv[0]] = kv[1]
+    resolve = kv_list_to_dict(keyvalue)
+
     conn = Connection("demobus://localhost:5398", "demobus://localhost:5398")
     addrs = await seanerbus.naming.resolve(conn, resolve)
 
@@ -97,15 +151,7 @@ async def make_rev_resolve(addr: str):
 
 
 async def make_reg_resolve(addr: str, keyvalue: list[str]):
-    name: dict[str, str] = {}
-    for kv in keyvalue:
-        kv = kv.split("=")
-        if len(kv) != 2:
-            print(
-                f"{kv}: key=value arguments need to consist of two terms separated by a '=' sign!"
-            )
-            exit(1)
-        name[kv[0]] = kv[1]
+    name = kv_list_to_dict(keyvalue)
 
     conn = Connection("demobus://localhost:5398", "demobus://localhost:5398")
     await seanerbus.naming.register_resolve(conn, name, addr)
@@ -199,6 +245,17 @@ def main():
         "-i", "--interval-max", help="Interval Max"
     )
 
+    get_req_parser = subparsers.add_parser("get", help="Get a metric reading")
+    _ = get_req_parser.add_argument(
+        "keyvalue", nargs="*", help="name of the metric to query as key=value pairs"
+    )
+
+    set_req_parser = subparsers.add_parser("set", help="Set an actuator")
+    _ = set_req_parser.add_argument(
+        "keyvalue", nargs="*", help="name of the metric to query as as key=value pairs"
+    )
+    _ = set_req_parser.add_argument("-v", "--value", help="Value to set", required=True)
+
     args = parser.parse_args()
 
     cmd: str = args.cmd
@@ -239,5 +296,9 @@ def main():
                 )
             )
         )
+    elif cmd == "get":
+        asyncio.run(capnp.run(make_get(args.keyvalue)))
+    elif cmd == "set":
+        asyncio.run(capnp.run(make_set(args.keyvalue, int(args.value))))
     else:
         parser.print_help()
