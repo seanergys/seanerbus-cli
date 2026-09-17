@@ -9,7 +9,7 @@ build-backend = "uv_build"
 dependencies = [
     "seanerbus",
 ]
-requires-python = ">= 3.10"
+requires-python = ">= 3.11"
 name = "seanerbus-cli"
 version = "0.0.1"
 
@@ -22,7 +22,7 @@ select = ["E4", "E7", "E9", "F"]
 [tool.ruff.format]
 
 [tool.uv.sources]
-seanerbus = { git = "ssh://git@gitlab.seanergys.fz-juelich.de/software/seanerbus-py.git"}
+seanerbus = { git = "ssh://git@gitlab.seanergys.fz-juelich.de/software/seanerbus-py.git", rev="e5dd67a98f25340224ad2ac43fa152f6838fae27"}
 
 [project.scripts]
 
