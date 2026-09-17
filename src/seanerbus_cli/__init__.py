@@ -55,12 +55,12 @@ async def make_get(keyvalue: list[str]):
     name = kv_list_to_dict(keyvalue)
 
     conn = Connection("demobus://localhost:5398", "demobus://localhost:5398")
-    addr = await seanerbus.naming.resolve(conn, name)
+    entities = await seanerbus.naming.resolve(conn, name)
 
-    if len(addr) != 1:
+    if len(entities) != 1:
         raise RuntimeError(f"Could not resolve {name} to a single endpoint!")
 
-    handle = await conn.request(addr[0], seanerbus.msg.GetReqV1().to_capnp())
+    handle = await conn.request(entities[0], seanerbus.msg.GetReqV1().to_capnp())
 
     msg = await handle()
 
@@ -82,12 +82,12 @@ async def make_set(keyvalue: list[str], value: int):
     name = kv_list_to_dict(keyvalue)
 
     conn = Connection("demobus://localhost:5398", "demobus://localhost:5398")
-    addr = await seanerbus.naming.resolve(conn, name)
+    entities = await seanerbus.naming.resolve(conn, name)
 
-    if len(addr) != 1:
+    if len(entities) != 1:
         raise RuntimeError(f"Could not resolve {name} to a single endpoint!")
 
-    handle = await conn.request(addr[0], seanerbus.msg.SetReqV1(value).to_capnp())
+    handle = await conn.request(entities[0], seanerbus.msg.SetReqV1(value).to_capnp())
 
     msg = await handle()
 
@@ -103,7 +103,7 @@ async def make_set(keyvalue: list[str], value: int):
     raise RuntimeError(f"Expected ErrorResV1 got {msg.payload_type_as_int()} instead")
 
 
-async def make_publish(addr: str, capnp_type: str, fields: list[str]):
+async def make_publish(entity: str, capnp_type: str, fields: list[str]):
     payload_content = getattr(seanerbus.msg.msg_capnp, capnp_type).new_message()
     payload_type = getattr(
         seanerbus.msg.msg_capnp.MessageTypes, capnp_type[:1].lower() + capnp_type[1:]
@@ -119,13 +119,13 @@ async def make_publish(addr: str, capnp_type: str, fields: list[str]):
         setattr(payload_content, key, value)
 
     conn = Connection("demobus://localhost:5398", "demobus://localhost:5398")
-    handle = await conn.publish(addr, (payload_type, payload_content.to_bytes()))
+    handle = await conn.publish(entity, (payload_type, payload_content.to_bytes()))
     await handle()
 
 
-async def make_subscribe(addr: str):
+async def make_subscribe(entities: str):
     conn = Connection("demobus://localhost:5398", "demobus://localhost:5398")
-    handle: MsgHandle = await conn.subscribe(addr)
+    handle: MsgHandle = await conn.subscribe(entities)
 
     while True:
         msg: seanerbus_cpp_py.Message = await handle()
@@ -137,29 +137,29 @@ async def make_resolve(keyvalue: list[str]):
     resolve = kv_list_to_dict(keyvalue)
 
     conn = Connection("demobus://localhost:5398", "demobus://localhost:5398")
-    addrs = await seanerbus.naming.resolve(conn, resolve)
+    entities = await seanerbus.naming.resolve(conn, resolve)
 
     print(f"Resolved {resolve} to:")
-    for addr in addrs:
-        print(f"\t{addr}")
+    for entities in entities:
+        print(f"\t{entities}")
 
 
-async def make_rev_resolve(addr: str):
+async def make_rev_resolve(entity: str):
     conn = Connection("demobus://localhost:5398", "demobus://localhost:5398")
-    kvs = await seanerbus.naming.reverse_resolve(conn, addr)
-    print(f"'{addr} => {kvs}")
+    kvs = await seanerbus.naming.reverse_resolve(conn, entity)
+    print(f"'{entity} => {kvs}")
 
 
-async def make_reg_resolve(addr: str, keyvalue: list[str]):
+async def make_reg_resolve(entity: str, keyvalue: list[str]):
     name = kv_list_to_dict(keyvalue)
 
     conn = Connection("demobus://localhost:5398", "demobus://localhost:5398")
-    await seanerbus.naming.register_resolve(conn, name, addr)
+    await seanerbus.naming.register_resolve(conn, name, entity)
 
 
-async def make_unreg_resolve(addr: str):
+async def make_unreg_resolve(entity: str):
     conn = Connection("demobus://localhost:5398", "demobus://localhost:5398")
-    await seanerbus.naming.unregister_resolve(conn, addr)
+    await seanerbus.naming.unregister_resolve(conn, entity)
 
 
 def main():
@@ -170,10 +170,10 @@ def main():
     subparsers = parser.add_subparsers(dest="cmd")
 
     subscribe_parser = subparsers.add_parser(
-        "subscribe", help="Subscribe to some address"
+        "subscribe", help="Subscribe to some entity"
     )
     _ = subscribe_parser.add_argument(
-        "-a", "--addr", help="Address to subscribe to", required=True
+        "-e", "--entity", help="Entity to subscribe to", required=True
     )
 
     publish_parser = subparsers.add_parser("publish", help="Publish a message")
@@ -181,7 +181,7 @@ def main():
         "-t", "--type", help="SeanerBUS payload type to publish", required=True
     )
     _ = publish_parser.add_argument(
-        "-a", "--addr", help="UUID address to publish to", required=True
+        "-e", "--entity", help="Entity to publish for", required=True
     )
     _ = publish_parser.add_argument(
         "keyvalue", nargs="*", help="key=value pairs to put into the payload"
@@ -193,31 +193,31 @@ def main():
     )
 
     rev_resolve_parser = subparsers.add_parser(
-        "reverse-resolve", help="Reverse resolve address to name"
+        "reverse-resolve", help="Reverse resolve entity to name"
     )
-    _ = rev_resolve_parser.add_argument("addr", help="Address to resolve back")
+    _ = rev_resolve_parser.add_argument("entity", help="Entity to resolve back")
 
     reg_resolve_parser = subparsers.add_parser(
-        "register-resolve", help="Reverse resolve address to name"
+        "register-resolve", help="Reverse resolve entity to name"
     )
 
-    _ = reg_resolve_parser.add_argument("addr", help="Address to register")
+    _ = reg_resolve_parser.add_argument("entity", help="Entity to register")
     _ = reg_resolve_parser.add_argument(
-        "keyvalue", nargs="*", help="name given to the address as key=value pairs"
+        "keyvalue", nargs="*", help="name given to the entity as key=value pairs"
     )
 
     unreg_resolve_parser = subparsers.add_parser(
-        "unregister-resolve", help="Reverse resolve address to name"
+        "unregister-resolve", help="Reverse resolve entity to name"
     )
     _ = unreg_resolve_parser.add_argument(
-        "addr", help="Address to deregister from naming service"
+        "entity", help="Entity to deregister from naming service"
     )
 
     hist_aggr_req_parser = subparsers.add_parser(
         "history-aggregate", help="Request one aggregate of time-series data"
     )
     _ = hist_aggr_req_parser.add_argument(
-        "addr", help="Address to deregister from naming service"
+        "entity", help="Entity to deregister from naming service"
     )
     _ = hist_aggr_req_parser.add_argument(
         "-s", "--start", help="Start time for history request", required=True
@@ -233,7 +233,7 @@ def main():
         "history-timeline", help="Request a timeline of  time-series data"
     )
     _ = hist_timeline_req_parser.add_argument(
-        "addr", help="Address to deregister from naming service"
+        "entity", help="Entity to query historic timeline data from"
     )
     _ = hist_timeline_req_parser.add_argument(
         "-s", "--start", help="Start time for history request"
@@ -262,28 +262,28 @@ def main():
 
     # print(vars(seanerbus.msg.msg_capnp.MessageTypes))
     if cmd == "publish":
-        asyncio.run(capnp.run(make_publish(args.addr, args.type, args.keyvalue)))
+        asyncio.run(capnp.run(make_publish(args.entity, args.type, args.keyvalue)))
 
     elif cmd == "subscribe":
-        asyncio.run(capnp.run(make_subscribe(args.addr)))
+        asyncio.run(capnp.run(make_subscribe(args.entity)))
 
     elif cmd == "resolve":
         asyncio.run(capnp.run(make_resolve(args.keyvalue)))
 
     elif cmd == "reverse-resolve":
-        asyncio.run(capnp.run(make_rev_resolve(args.addr)))
+        asyncio.run(capnp.run(make_rev_resolve(args.entity)))
 
     elif cmd == "register-resolve":
-        asyncio.run(capnp.run(make_reg_resolve(args.addr, args.keyvalue)))
+        asyncio.run(capnp.run(make_reg_resolve(args.entity, args.keyvalue)))
 
     elif cmd == "unregister-resolve":
-        asyncio.run(capnp.run(make_unreg_resolve(args.addr)))
+        asyncio.run(capnp.run(make_unreg_resolve(args.entity)))
 
     elif cmd == "history-aggregate":
         asyncio.run(
             capnp.run(
                 make_history_aggregate(
-                    args.addr, int(args.start), int(args.end), int(args.interval_max)
+                    args.entity, int(args.start), int(args.end), int(args.interval_max)
                 )
             )
         )
@@ -292,7 +292,7 @@ def main():
         asyncio.run(
             capnp.run(
                 make_history_timeline(
-                    args.addr, int(args.start), int(args.end), int(args.interval_max)
+                    args.entity, int(args.start), int(args.end), int(args.interval_max)
                 )
             )
         )
