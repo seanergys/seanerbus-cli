@@ -140,8 +140,11 @@ async def make_resolve(keyvalue: list[str]):
     entities = await seanerbus.naming.resolve(conn, resolve)
 
     print(f"Resolved {resolve} to:")
-    for entities in entities:
-        print(f"\t{entities}")
+    for num, entity in enumerate(entities["entities"]):
+        if num in entities["resolved_terms"]:
+            print(f"\t{entity} (Resolved Terms: {entities['resolved_terms'][num]}")
+        else:
+            print(f"\t{entity}")
 
 
 async def make_rev_resolve(entity: str):
