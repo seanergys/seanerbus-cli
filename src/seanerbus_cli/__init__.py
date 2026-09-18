@@ -141,8 +141,8 @@ async def make_resolve(keyvalue: list[str]):
 
     print(f"Resolved {resolve} to:")
     for num, entity in enumerate(entities["entities"]):
-        if num in entities["resolved_terms"]:
-            print(f"\t{entity} (Resolved Terms: {entities['resolved_terms'][num]}")
+        if num < len(entities["resolved_terms"]):
+            print(f"\t{entity} (Resolved Terms: {entities['resolved_terms'][num]})")
         else:
             print(f"\t{entity}")
 
