@@ -22,7 +22,7 @@ select = ["E4", "E7", "E9", "F"]
 [tool.ruff.format]
 
 [tool.uv.sources]
-seanerbus = { git = "ssh://git@gitlab.seanergys.fz-juelich.de/software/seanerbus-py.git", rev="38fd2e5b23de30b3730dca7fe76405aacf81413"}
+seanerbus = { git = "ssh://git@gitlab.seanergys.fz-juelich.de/software/seanerbus-py.git", rev="5ebbbed192474cf9320b64e6fb5e12a7bcdacb21"}
 
 [project.scripts]
 
