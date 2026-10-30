@@ -55,10 +55,14 @@ async def make_get(keyvalue: list[str]):
     name = kv_list_to_dict(keyvalue)
 
     conn = Connection("demobus://localhost:5398", "demobus://localhost:5398")
-    entities = await seanerbus.naming.resolve(conn, name)
+    res = await seanerbus.naming.resolve(conn, name)
 
-    if len(entities) != 1:
-        raise RuntimeError(f"Could not resolve {name} to a single endpoint!")
+    l = 0
+    entities = res.get('entities', None)
+    if entities != None:
+        l = len(entities)
+    if l != 1:
+        raise RuntimeError(f"Could not resolve {name} to a single endpoint (returned: {l})!")
 
     handle = await conn.request(entities[0], seanerbus.msg.GetReqV1().to_capnp())
 
@@ -82,10 +86,14 @@ async def make_set(keyvalue: list[str], value: int):
     name = kv_list_to_dict(keyvalue)
 
     conn = Connection("demobus://localhost:5398", "demobus://localhost:5398")
-    entities = await seanerbus.naming.resolve(conn, name)
+    res = await seanerbus.naming.resolve(conn, name)
 
-    if len(entities) != 1:
-        raise RuntimeError(f"Could not resolve {name} to a single endpoint!")
+    l = 0
+    entities = res.get('entities', None)
+    if entities != None:
+        l = len(entities)
+    if l != 1:
+        raise RuntimeError(f"Could not resolve {name} to a single endpoint (returned: {l})!")
 
     handle = await conn.request(entities[0], seanerbus.msg.SetReqV1(value).to_capnp())
 
