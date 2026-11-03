@@ -9,7 +9,7 @@ from seanerbus.time_series import get_timeline, get_aggregate
 async def make_history_aggregate(
     entity: str, start_time: int, end_time: int, interval_max: int
 ):
-    conn = Connection("demobus://localhost:5398", "demobus://localhost:5398")
+    conn = Connection("seanerbroker://localhost:5398", "seanerbroker://localhost:5398")
 
     aggr = await get_aggregate(conn, entity, start_time, end_time, interval_max)
 
@@ -19,7 +19,7 @@ async def make_history_aggregate(
 async def make_history_timeline(
     entity: str, start_time: int, end_time: int, interval_max: int
 ):
-    conn = Connection("demobus://localhost:5398", "demobus://localhost:5398")
+    conn = Connection("seanerbroker://localhost:5398", "seanerbroker://localhost:5398")
     timeline = await get_timeline(conn, entity, start_time, end_time, interval_max)
 
     if timeline.type == "raw":

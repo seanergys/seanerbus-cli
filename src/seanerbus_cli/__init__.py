@@ -54,15 +54,17 @@ def parse_msg(payload_type: int, payload: bytes) -> tuple[str, object]:
 async def make_get(keyvalue: list[str]):
     name = kv_list_to_dict(keyvalue)
 
-    conn = Connection("demobus://localhost:5398", "demobus://localhost:5398")
+    conn = Connection("seanerbroker://localhost:5398", "seanerbroker://localhost:5398")
     res = await seanerbus.naming.resolve(conn, name)
 
     l = 0
-    entities = res.get('entities', None)
+    entities = res.get("entities", None)
     if entities != None:
         l = len(entities)
     if l != 1:
-        raise RuntimeError(f"Could not resolve {name} to a single endpoint (returned: {l})!")
+        raise RuntimeError(
+            f"Could not resolve {name} to a single endpoint (returned: {l})!"
+        )
 
     handle = await conn.request(entities[0], seanerbus.msg.GetReqV1().to_capnp())
 
@@ -85,15 +87,17 @@ async def make_get(keyvalue: list[str]):
 async def make_set(keyvalue: list[str], value: int):
     name = kv_list_to_dict(keyvalue)
 
-    conn = Connection("demobus://localhost:5398", "demobus://localhost:5398")
+    conn = Connection("seanerbroker://localhost:5398", "seanerbroker://localhost:5398")
     res = await seanerbus.naming.resolve(conn, name)
 
     l = 0
-    entities = res.get('entities', None)
+    entities = res.get("entities", None)
     if entities != None:
         l = len(entities)
     if l != 1:
-        raise RuntimeError(f"Could not resolve {name} to a single endpoint (returned: {l})!")
+        raise RuntimeError(
+            f"Could not resolve {name} to a single endpoint (returned: {l})!"
+        )
 
     handle = await conn.request(entities[0], seanerbus.msg.SetReqV1(value).to_capnp())
 
@@ -126,13 +130,13 @@ async def make_publish(entity: str, capnp_type: str, fields: list[str]):
             pass
         setattr(payload_content, key, value)
 
-    conn = Connection("demobus://localhost:5398", "demobus://localhost:5398")
+    conn = Connection("seanerbroker://localhost:5398", "seanerbroker://localhost:5398")
     handle = await conn.publish(entity, (payload_type, payload_content.to_bytes()))
     await handle()
 
 
 async def make_subscribe(entities: str):
-    conn = Connection("demobus://localhost:5398", "demobus://localhost:5398")
+    conn = Connection("seanerbroker://localhost:5398", "seanerbroker://localhost:5398")
     handle: MsgHandle = await conn.subscribe(entities)
 
     while True:
@@ -144,7 +148,7 @@ async def make_subscribe(entities: str):
 async def make_resolve(keyvalue: list[str]):
     resolve = kv_list_to_dict(keyvalue)
 
-    conn = Connection("demobus://localhost:5398", "demobus://localhost:5398")
+    conn = Connection("seanerbroker://localhost:5398", "seanerbroker://localhost:5398")
     entities = await seanerbus.naming.resolve(conn, resolve)
 
     print(f"Resolved {resolve} to:")
@@ -156,7 +160,7 @@ async def make_resolve(keyvalue: list[str]):
 
 
 async def make_rev_resolve(entity: str):
-    conn = Connection("demobus://localhost:5398", "demobus://localhost:5398")
+    conn = Connection("seanerbroker://localhost:5398", "seanerbroker://localhost:5398")
     kvs = await seanerbus.naming.reverse_resolve(conn, entity)
     print(f"'{entity} => {kvs}")
 
@@ -164,12 +168,12 @@ async def make_rev_resolve(entity: str):
 async def make_reg_resolve(entity: str, keyvalue: list[str]):
     name = kv_list_to_dict(keyvalue)
 
-    conn = Connection("demobus://localhost:5398", "demobus://localhost:5398")
+    conn = Connection("seanerbroker://localhost:5398", "seanerbroker://localhost:5398")
     await seanerbus.naming.register_resolve(conn, name, entity)
 
 
 async def make_unreg_resolve(entity: str):
-    conn = Connection("demobus://localhost:5398", "demobus://localhost:5398")
+    conn = Connection("seanerbroker://localhost:5398", "seanerbroker://localhost:5398")
     await seanerbus.naming.unregister_resolve(conn, entity)
 
 
